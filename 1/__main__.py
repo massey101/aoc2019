@@ -6,4 +6,6 @@ filename = sys.argv[1]
 
 with open(filename) as f:
     module_masses = [int(line) for line in f]
-    print(one.calculate_total_fuel(module_masses))
+
+print(one.calculate_total_fuel(module_masses))
+print(one.calculate_adjusted_total_fuel(module_masses))
