@@ -1,40 +1,31 @@
 import copy
-import math
 
 
 class Instruction:
-    def __init__(self, value, name, inputs, outputs, execute):
-        self.value = value
-        self.name = name
+    def __init__(self, execute, inputs, outputs):
+        self.execute = execute
         self.inputs = inputs
         self.outputs = outputs
-        self.execute = execute
 
     @classmethod
     def decode(cls, instruction):
         return instruction % 100
 
-    def get_parameter_modes(self, instruction):
-        return [
-            math.floor(instruction / (math.pow(10, i+2))) % 10
-            for i
-            in range(self.inputs)
-        ]
-
     def get_parameters(self, intcode):
-        modes = self.get_parameter_modes(intcode.read(intcode.counter))
+        instruction = intcode.read(intcode.counter)
         params = []
         arg_pointer = intcode.counter + 1
         for i in range(self.inputs):
             value = intcode.read(arg_pointer)
-            if not modes[i]:
+            if not int(instruction / (10 ** (i + 2))) % 10:
                 value = intcode.read(value)
 
             params.append(value)
             arg_pointer += 1
 
         for i in range(self.outputs):
-            params.append(intcode.read(arg_pointer))
+            value = intcode.read(arg_pointer)
+            params.append(value)
             arg_pointer += 1
 
         return params
@@ -48,15 +39,15 @@ class Intcode:
         self.outputs = []
 
         self.opcodes = {
-            1: Instruction(1, 'add', 2, 1, self.add),
-            2: Instruction(2, 'multiply', 2, 1, self.multiply),
-            3: Instruction(3, 'store', 0, 1, self.store),
-            4: Instruction(4, 'output', 1, 0, self.output),
-            5: Instruction(5, 'jump-if-true', 2, 0, self.jump_if_true),
-            6: Instruction(6, 'jump-if-false', 2, 0, self.jump_if_false),
-            7: Instruction(7, 'less-than', 2, 1, self.less_than),
-            8: Instruction(8, 'equals', 2, 1, self.equals),
-            99: Instruction(99, 'finish', 0, 0, self.finish),
+            1: Instruction(self.add, 2, 1),
+            2: Instruction(self.multiply, 2, 1),
+            3: Instruction(self.store, 0, 1),
+            4: Instruction(self.output, 1, 0),
+            5: Instruction(self.jump_if_true, 2, 0),
+            6: Instruction(self.jump_if_false, 2, 0),
+            7: Instruction(self.less_than, 2, 1),
+            8: Instruction(self.equals, 2, 1),
+            99: Instruction(self.finish, 0, 0),
         }
 
     def read(self, pointer):
@@ -87,32 +78,22 @@ class Intcode:
         return True
 
     def jump_if_true(self, a, b):
-        if a:
-            self.counter = b
-        else:
-            self.counter += 3
+        self.counter = b if a else self.counter + 3
         return True
 
     def jump_if_false(self, a, b):
-        if not a:
-            self.counter = b
-        else:
-            self.counter += 3
+        self.counter = b if not a else self.counter + 3
         return True
 
     def less_than(self, a, b, c):
-        if a < b:
-            self.write(c, 1)
-        else:
-            self.write(c, 0)
+        value = 1 if a < b else 0
+        self.write(c, value)
         self.counter += 4
         return True
 
     def equals(self, a, b, c):
-        if a == b:
-            self.write(c, 1)
-        else:
-            self.write(c, 0)
+        value = 1 if a == b else 0
+        self.write(c, value)
         self.counter += 4
         return True
 
